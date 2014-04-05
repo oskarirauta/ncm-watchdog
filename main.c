@@ -423,7 +423,7 @@ int main(int argc, char **argv) {
 
 	if ( verboseMode == 1 )
 		setlogmask(LOG_UPTO(LOG_NOTICE));
-	else ( if verboseMode == 2 )
+	else if ( verboseMode == 2 )
 		setlogmask(LOG_UPTO(LOG_INFO));
 	else
 		setlogmask(LOG_UPTO(LOG_DEBUG));
