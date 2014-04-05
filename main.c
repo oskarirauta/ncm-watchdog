@@ -362,7 +362,7 @@ int main(int argc, char **argv) {
 
 	initHosts();
 
-	while (( ch = getopt(argc, argv, "d:npt:i:f:emcwvs")) != -1 ) {
+	while (( ch = getopt(argc, argv, "d:npt:i:f:emc:w:vs:")) != -1 ) {
 		switch (ch) {
 			case 'd':
 				ifd = (char*)malloc(strlen(optarg)+1);
