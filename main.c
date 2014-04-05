@@ -485,10 +485,11 @@ int main(int argc, char **argv) {
 						if ( verboseMode )
 							printf("Calling network.interface.wan down\r\n");
 						call_ifd(0);
-						sleep(3);
+						sleep(5);
 						if ( verboseMode )
 							printf("Calling network.interface.wan up\r\n");
 						call_ifd(1);
+						sleep(3);
 					}
 				}
 
