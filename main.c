@@ -6,6 +6,7 @@
 #include <libubox/blobmsg_json.h>
 #include <libubus.h>
 #include <time.h>
+#include <syslog.h>
 
 #include "defines.h"
 #include "hostlist.h"
@@ -18,7 +19,7 @@ int use_dns = 0;
 int dns_pri = 0;
 int treatErrors = 0;
 int treatDNS = 0;
-int verboseMode = 0;
+int verboseMode = 1;
 int failsAllowed = RESTART_AMOUNT;
 int pingTimeout = PING_TIMEOUT;
 int needDNSRefresh = 0;
@@ -119,6 +120,12 @@ static void call_ifd(int state) {
 			NULL, UBUS_TIMEOUT * 1000);
 }
 
+static void logPing(int fAttempts, int sAttempts, int dnsErrors, int comErrors) {
+	syslog(LOG_DEBUG, "Ping results: %d succeeded, %d failed, %d dns errors, %d incomplete pings",
+		sAttempts, fAttempts, dnsErrors, comErrors);
+}
+
+
 static int pingTest(void) {
 	int fAttempts = 0;
 	int sAttempts = 0;
@@ -130,34 +137,31 @@ static int pingTest(void) {
 	h = dnsList -> next;
 	if (( use_dns ) && ( dns_pri ) && ( h != NULL ))
 		while ( h != NULL ) {
-			if ( verboseMode )
-				printf("Trying to ping host %s\r\n", h -> host);
+			syslog(LOG_DEBUG, "Trying to ping host %s", h -> host);
 			ret = ping( h -> host, pingTimeout );
 			switch ( ret ) {
 				case PING_PERM_ERROR:
+							syslog(LOG_ERR, "You must be root to run this program.");
 							fprintf(stderr, "You must be root to run this program.\n");
 							cleanUp();
 							exit(-1);
 							break;
 				case PING_DNS_FAILURE:
 							dnsErrors++;
-							if ( verboseMode )
-								printf("DNS failure when trying to ping %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "DNS failure when trying to ping %s", h -> host);
 							break;
 				case PING_ERROR:
 							comErrors++;
-							if ( verboseMode )
-								printf("Incomplete ping for host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Incomplete ping for host %s", h -> host);
 							break;
 				case PING_FAILED:
 							fAttempts++;
-							if ( verboseMode )
-								printf("Ping failed for host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Ping failed for host %s", h -> host);
 							break;
 				case PING_SUCCESS:
 							sAttempts++;
-							if ( verboseMode )
-								printf("Ping reached host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Ping reached host %s", h -> host);
+							logPing(fAttempts, sAttempts, dnsErrors, comErrors);
 							return 1;
 							break;
 				default:
@@ -168,34 +172,31 @@ static int pingTest(void) {
 
 	h = hostList -> next;
 	while ( h != NULL ) {
-		if ( verboseMode )
-			printf("Trying to ping host %s\r\n", h -> host);
+		syslog(LOG_DEBUG, "Trying to ping host %s", h -> host);
 		ret = ping( h -> host, pingTimeout );
 		switch ( ret ) {
 			case PING_PERM_ERROR:
+						syslog(LOG_ERR, "You must be root to run this program.");
 						fprintf(stderr, "You must be root to run this program.\n");
 						cleanUp();
 						exit(-1);
 						break;
 			case PING_DNS_FAILURE:
 						dnsErrors++;
-						if ( verboseMode )
-							printf("DNS failure when trying to ping %s\r\n", h -> host);
+						syslog(LOG_DEBUG, "DNS failure when trying to ping %s", h -> host);
 						break;
 			case PING_ERROR:
 						comErrors++;
-						if ( verboseMode )
-							printf("Incomplete ping for host %s\r\n", h -> host);
+						syslog(LOG_DEBUG, "Incomplete ping for host %s", h -> host);
 						break;
 			case PING_FAILED:
 						fAttempts++;
-						if ( verboseMode )
-							printf("Ping failed for host %s\r\n", h -> host);
+						syslog(LOG_DEBUG, "Ping failed for host %s", h -> host);
 						break;
 			case PING_SUCCESS:
 						sAttempts++;
-						if ( verboseMode )
-							printf("Ping reached host %s\r\n", h -> host);
+						syslog(LOG_DEBUG, "Ping reached host %s", h -> host);
+						logPing(fAttempts, sAttempts, dnsErrors, comErrors);
 						return 1;
 						break;
 			default:
@@ -207,34 +208,31 @@ static int pingTest(void) {
 	h = dnsList -> next;
 	if (( use_dns ) && ( !dns_pri ) && ( h != NULL ))
 		while ( h != NULL ) {
-			if ( verboseMode )
-				printf("Trying to ping host %s\r\n", h -> host);
+			syslog(LOG_DEBUG, "Trying to ping host %s", h -> host);
 			ret = ping( h -> host, pingTimeout );
 			switch ( ret ) {
 				case PING_PERM_ERROR:
+							syslog(LOG_ERR, "You must be root to run this program.");
 							fprintf(stderr, "You must be root to run this program.\n");
 							cleanUp();
 							exit(-1);
 							break;
 				case PING_DNS_FAILURE:
 							dnsErrors++;
-							if ( verboseMode )
-								printf("DNS failure when trying to ping %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "DNS failure when trying to ping %s", h -> host);
 							break;
 				case PING_ERROR:
 							comErrors++;
-							if ( verboseMode )
-								printf("Incomplete ping for host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Incomplete ping for host %s", h -> host);
 							break;
 				case PING_FAILED:
 							fAttempts++;
-							if ( verboseMode )
-								printf("Ping failed for host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Ping failed for host %s", h -> host);
 							break;
 				case PING_SUCCESS:
 							sAttempts++;
-							if ( verboseMode )
-								printf("Ping reached host %s\r\n", h -> host);
+							syslog(LOG_DEBUG, "Ping reached host %s", h -> host);
+							logPing(fAttempts, sAttempts, dnsErrors, comErrors);
 							return 1;
 							break;
 				default:
@@ -243,25 +241,18 @@ static int pingTest(void) {
                 h = h -> next;
         }
 
+	logPing(fAttempts, sAttempts, dnsErrors, comErrors);
+
 	if (( !fAttempts ) && ( !sAttempts ) && ( !dnsErrors ) && ( !comErrors )) {
-		if ( verboseMode ) {
-			printf("No pings made. Host lists were empty.\r\n");
-			if ( use_dns )
-				printf("Refreshing nameservers on next time timer occurs.\r\n");
-		}
-		if ( use_dns )
+		syslog(LOG_DEBUG, "No pings made. Host lists were empty.");
+		if ( use_dns ) {
+			syslog(LOG_DEBUG, "Refreshing nameservers list on next cycle.");
 			needDNSRefresh = 1;
+		}
 		return 1;
 	}
 
-	if ( verboseMode ) {
-		printf("Ping(s) results:\r\n");
-		printf("Failed pings:    %d\r\n", fAttempts);
-		printf("Succeeded pings: %d\r\n", sAttempts);
-		printf("DNS errors:      %d\r\n", dnsErrors);
-		printf("Ping errors:     %d\r\n", comErrors);
-	}
-
+	
 	if (( !fAttempts ) && ( !sAttempts ) && ( !treatErrors ) && ( treatDNS ) && ( comErrors > 0 ))
 		return 1;
 
@@ -279,6 +270,7 @@ static void cleanUp(void) {
 		free( json_param );
 	if ( ctx )
 		ubus_free(ctx);
+	closelog();
 }
 
 static void printVersion(void) {
@@ -287,19 +279,32 @@ static void printVersion(void) {
 	printf("\r\nWritten by Oskari Rauta.\r\n\n");
 }
 
+static void logVersion(void) {
+	syslog(LOG_INFO, "Starting %s v%s", APPNAME, VERSION);
+}
+
+void logStatistics(void) {
+	syslog(LOG_DEBUG, "ncm-watchdog statistics");
+	syslog(LOG_DEBUG, "Network ifd: '%s', state: %s", !ifd ? "-" : ifd, ifdState ? "up" : "down");
+	syslog(LOG_DEBUG, "Use dns: %s, dns is primary: %s", use_dns ? "yes" : "no", dns_pri ? "yes" : "no");
+	syslog(LOG_DEBUG, "Treat DNS Errors: %s, treat incomplete pings: %s", treatDNS ? "yes" : "no", treatErrors ? "yes" : "no");
+	syslog(LOG_DEBUG, "Timer intervals: primary %d seconds, secondary %d seconds", interval, firstcheck);
+	syslog(LOG_DEBUG, "Allowed count of failed pings: %d, ping time's out in %d seconds", failsAllowed, pingTimeout);
+}
+
 void printStatistics(void) {
 	int a;
 	hostItem *h;
 
 	printVersion();
 
-	printf("Network interface: '%s'\r\n", !ifd ? "(null)" : ifd);
+	printf("Network interface: '%s'\r\n", !ifd ? "-" : ifd);
 	printf("Network interface state: %s\r\n", ifdState ? "up" : "down");
 	printf("Use dns: %s\r\n", use_dns ? "yes" : "no");
 	printf("DNS is primary: %s\r\n", dns_pri ? "yes": "no");
 	printf("Treat ping errors as failures to connect: %s\r\n", treatErrors ? "yes" : "no");
 	printf("Treat DNS errors as failures to connect: %s\r\n", treatDNS ? "yes" : "no");
-	printf("Verbose mode: %s\r\n", verboseMode ? "yes" : "no");
+	printf("Logging level: %d\r\n", verboseMode);
 	printf("Primary timer interval for checking: %d seconds\r\n", interval);
 	printf("Secondary timer interval: %d seconds\r\n", firstcheck);
 	printf("Allowed number of failed ping cycles before connection restarts: %d\r\n", failsAllowed);
@@ -349,7 +354,7 @@ void usage(char *progname) {
 	printf("                connection ( default: %d )\r\n", RESTART_AMOUNT);
 	printf(" -w seconds     set ping timeout ( default: %d )\r\n", PING_TIMEOUT);
 	printf(" -s <socket>    Set the ubus's unix domain socket to connect to\r\n");
-	printf(" -v		Verbose mode\r\n");
+	printf(" -v [1-3]       Set logging level verbosity ( default: 1 )\r\n");
 	printf("\r\nAtleast network interface and one host is required, either added with -d or -t.\r\n");
 	printf("If you add nameservers, but connection is down, they will be refreshed\r\nonce connection is up.\r\n");
 }
@@ -362,7 +367,7 @@ int main(int argc, char **argv) {
 
 	initHosts();
 
-	while (( ch = getopt(argc, argv, "d:npt:i:f:emc:w:vs:")) != -1 ) {
+	while (( ch = getopt(argc, argv, "d:npt:i:f:emc:w:v:s:")) != -1 ) {
 		switch (ch) {
 			case 'd':
 				ifd = (char*)malloc(strlen(optarg)+1);
@@ -399,7 +404,7 @@ int main(int argc, char **argv) {
 				pingTimeout = atoi(optarg);
 				break;
 			case 'v':
-				verboseMode = 1;
+				verboseMode = atoi(optarg);
 				break;
 			case 's':
 				ubus_socket = optarg;
@@ -411,6 +416,21 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	if ( verboseMode < 1 )
+		verboseMode = 1;
+	if ( verboseMode > 3 )
+		verboseMode = 3;
+
+	if ( verboseMode == 1 )
+		setlogmask(LOG_UPTO(LOG_NOTICE));
+	else ( if verboseMode == 2 )
+		setlogmask(LOG_UPTO(LOG_INFO));
+	else
+		setlogmask(LOG_UPTO(LOG_DEBUG));
+
+	openlog("ncm-watchdog", LOG_CONS | LOG_NDELAY, LOG_DAEMON);
+	logVersion();
+
 	if ( use_dns ) {
 		addDNS();
 		if ( dnsList -> next == NULL )
@@ -418,8 +438,9 @@ int main(int argc, char **argv) {
 	}
 
 	if ( ! ( ctx = ubus_connect(ubus_socket))) {
+		syslog(LOG_CRIT, "Failed to connect to ubus");
 		fprintf(stderr, "Failed to connect to ubus\n");
-		if ( verboseMode )
+		if ( verboseMode == 3 )
 			printStatistics();
 		cleanUp();
 		return -1;
@@ -432,24 +453,27 @@ int main(int argc, char **argv) {
 
 	if (( argc < 2 ) || ( !ifd )) {
 		usage(progname);
-		if ( verboseMode )
+		if ( verboseMode == 3 )
 			printStatistics();
 		cleanUp();
 		return -1;
 	}
 
 	if (( hostList -> next == NULL ) && ( !use_dns )) {
+		syslog(LOG_ERR, "No target hosts to ping in the list for ncm-watchdog");
 		fprintf(stderr, "No addresses to check.\n");
 		printf("If you started this program with only nameservers, did you start it\r\n");
 		printf("before nameservers were retrieved by activating connection?\r\n\n");
-		if ( verboseMode )
+		if ( verboseMode == 3 )
 			printStatistics();
 		cleanUp();
 		return -1;
 	}
 
-	if ( verboseMode )
+	if ( verboseMode == 3 )
 		printStatistics();
+
+	logStatistics();
 
 	nextEvent = time(NULL) + firstcheck;
 
@@ -464,8 +488,7 @@ int main(int argc, char **argv) {
 			
 			if (( ifdState == 1 ) && ( ifdPrevious == 1 )) { // Refresh DNS when needed and start a ping test
 
-				if ( verboseMode )
-					printf("State: up. Starting ping test.\r\n");
+				syslog(LOG_INFO, "State: up. Starting ping test.");
 
 				if ( needDNSRefresh ) {
 					addDNS();
@@ -478,16 +501,15 @@ int main(int argc, char **argv) {
 				else {
 					failedPings++;
 					if ( failedPings >= failsAllowed ) {
-						printf("Connection lost. Restarting interface.\r\n");
+						syslog(LOG_NOTICE, "Connection lost. Restarting interface.");
+						printf("Connection lost. Restarting interface.");
 						failedPings = 0;
 						needDNSRefresh = 1;
 						ifdPrevious = 0;
-						if ( verboseMode )
-							printf("Calling network.interface.wan down\r\n");
+						syslog(LOG_DEBUG, "Making ubus call network.interface.wan down");
 						call_ifd(0);
 						sleep(5);
-						if ( verboseMode )
-							printf("Calling network.interface.wan up\r\n");
+						syslog(LOG_DEBUG, "Making ubus call network.interface.wan up");
 						call_ifd(1);
 						sleep(3);
 					}
@@ -496,24 +518,19 @@ int main(int argc, char **argv) {
 				nextEvent = time(NULL) + interval;
 			} else if (( ifdState == 1 ) && ( ifdPrevious == 0 )) { // Communication was just brought up
 				// Order a DNS refresh for next cycle
-				if ( verboseMode )
-					printf("State: down -> up. Commensing a DNS refresh for next cycle.\r\n");
+				syslog(LOG_INFO, "State: down -> up. Ordering a DNS refresh for next cycle.");
 				needDNSRefresh = 1;
 				nextEvent = time(NULL) + firstcheck;
 				ifdPrevious = ifdState;
 			} else if (( ifdState == 0 ) && ( ifdPrevious == 0 )) { // We have lost the connection with purpose
-				if ( verboseMode )
-					printf("State: down. Waiting for connection.\r\n");
+				syslog(LOG_INFO, "State: down. Waiting for connection.");
 				nextEvent = time(NULL) + firstcheck;
 			} else {
-				if ( verboseMode )
-					printf("State: up -> down. Connection was terminated by user/system.\r\n");
+				syslog(LOG_INFO, "State: up -> down. Connection was terminated by user/system.");
 				nextEvent = time(NULL) + firstcheck; // We just lost the connection, check later if it's back up
 				ifdPrevious = ifdState;
 			}
 
-		if ( verboseMode )
-			printf("\r\n");
 		}
 
 	}
